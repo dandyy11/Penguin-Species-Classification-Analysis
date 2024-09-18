@@ -1,0 +1,226 @@
+## Q2
+
+---
+title: "Q2. Exploratory Analysis"
+author: "Salman"
+date: "2024-04-05"
+output: word_document
+---
+```{r}
+knitr::opts_chunk$set(echo = TRUE)
+library(palmerpenguins)
+library(ggplot2)
+
+penguins2 <- as.data.frame(palmerpenguins::penguins)
+penguins2 <- penguins2[, -c(2, 7, 8)]  
+penguins2 <- na.omit(penguins2)         
+
+summary(penguins2)
+
+aggregate(. ~ species, data = penguins2, mean)
+
+ggplot(penguins2, aes(x = bill_length_mm, y = bill_depth_mm, color = species)) +
+  geom_point() +
+  labs(title = "Bill Length vs. Bill Depth by Species", 
+       x = "Bill Length (mm)", y = "Bill Depth (mm)")
+
+ggplot(penguins2, aes(x = species, y = flipper_length_mm, fill = species)) +
+  geom_boxplot() +
+  labs(title = "Flipper Length by Species", x = "Species", y = "Flipper Length (mm)")
+
+ggplot(penguins2, aes(x = body_mass_g, fill = species)) +
+  geom_density(alpha = 0.7) +
+  labs(title = "Body Mass Distribution by Species", x = "Body Mass (g)")
+
+
+## Q3
+
+---
+title: "Q3. Splitting the Dataset"
+author: "Salman"
+date: "2024-04-05"
+output: word_document
+---
+
+```{r}
+knitr::opts_chunk$set(echo = TRUE)
+library(palmerpenguins)
+library(caret)
+
+penguins2 <- as.data.frame(palmerpenguins::penguins)
+penguins2 <- penguins2[, -c(2, 7, 8)]  
+penguins2 <- na.omit(penguins2)         
+
+set.seed(123)
+training_indices <- createDataPartition(y = penguins2$species, p = 0.7, list = FALSE)
+
+# Splitting the dataset into training and testing sets
+training_set <- penguins2[training_indices, ]
+testing_set <- penguins2[-training_indices, ]
+
+# Output the size of the training and testing sets
+cat("Training set rows:", nrow(training_set), "\n")
+cat("Testing set rows:", nrow(testing_set), "\n")
+
+
+## Q4
+
+---
+title: "Q4. k Nearest Neighbor Analysis"
+author: "Salman"
+date: "2024-04-05"
+output: word_document
+---
+
+```{r}
+knitr::opts_chunk$set(echo = TRUE)
+library(caret)
+library(class)
+library(mclust)
+library(palmerpenguins)
+
+
+data("penguins", package = "palmerpenguins")
+penguins2 <- as.data.frame(penguins)
+
+
+penguins2 <- penguins2[, -c(2, 7, 8)] 
+penguins2 <- na.omit(penguins2)
+
+set.seed(123)
+training_indices <- createDataPartition(y = penguins2$species, p = 0.7, list = FALSE)
+training_set <- penguins2[training_indices, ]
+testing_set <- penguins2[-training_indices, ]
+
+train_control <- trainControl(method="cv", number=10) 
+
+# Train the k-NN model
+set.seed(123) 
+knn_model <- train(species ~ ., data=training_set, method="knn", tuneLength=20, trControl=train_control)
+
+# Print 
+print(knn_model$bestTune)
+
+# Predictions on the testing set
+knn_predictions <- predict(knn_model, newdata=testing_set)
+
+# Confusion matrix
+confusion_matrix <- confusionMatrix(knn_predictions, testing_set$species)
+print(confusion_matrix)
+
+# Misclassification rate
+misclassification_rate <- 1 - sum(diag(confusion_matrix$table)) / sum(confusion_matrix$table)
+cat("Misclassification Rate:", misclassification_rate, "\n")
+
+# Adjusted Rand Index (ARI)
+ARI <- adjustedRandIndex(knn_predictions, testing_set$species)
+cat("Adjusted Rand Index (ARI):", ARI, "\n")
+
+
+## Q5
+
+---
+title: "Q5. Classification Tree"
+author: "Salman"
+date: "2024-04-05"
+output: word_document
+---
+
+```{r}
+knitr::opts_chunk$set(echo = TRUE)
+library(caret)
+library(rpart)
+library(rpart.plot)
+library(mclust)
+library(palmerpenguins)
+
+
+data("penguins", package = "palmerpenguins")
+penguins2 <- as.data.frame(penguins)
+
+
+penguins2 <- penguins2[, -c(2, 7, 8)]
+penguins2 <- na.omit(penguins2)
+
+set.seed(123)
+training_indices <- createDataPartition(y = penguins2$species, p = 0.7, list = FALSE)
+training_set <- penguins2[training_indices, ]
+testing_set <- penguins2[-training_indices, ]
+
+# Fit the classification tree
+tree_model <- rpart(species ~ ., data=training_set, method="class")
+
+# Plot the classification tree
+rpart.plot(tree_model, main="Classification Tree for Penguin Species")
+
+# Predict on the testing set
+tree_predictions <- predict(tree_model, newdata=testing_set, type="class")
+
+# Confusion matrix
+confusion_matrix_tree <- confusionMatrix(tree_predictions, testing_set$species)
+print(confusion_matrix_tree)
+
+# Misclassification rate
+misclassification_rate_tree <- 1 - sum(diag(confusion_matrix_tree$table)) / sum(confusion_matrix_tree$table)
+cat("Misclassification Rate:", misclassification_rate_tree, "\n")
+
+# Adjusted Rand Index (ARI)
+ARI_tree <- adjustedRandIndex(tree_predictions, testing_set$species)
+cat("Adjusted Rand Index (ARI):", ARI_tree, "\n")
+
+
+## Q6
+
+---
+title: "Q6. Random Forest Analysis"
+author: "Salman"
+date: "2024-04-05"
+output: word_document
+---
+
+```{r}
+knitr::opts_chunk$set(echo = TRUE)
+library(randomForest)
+library(caret)
+library(mclust)
+library(palmerpenguins)
+
+penguins2 <- as.data.frame(palmerpenguins::penguins)
+
+
+penguins2 <- penguins2[, -c(2, 7, 8)] 
+penguins2 <- na.omit(penguins2)
+
+set.seed(123)
+training_indices <- createDataPartition(y = penguins2$species, p = 0.7, list = FALSE)
+training_set <- penguins2[training_indices, ]
+testing_set <- penguins2[-training_indices, ]
+
+train_control <- trainControl(method="cv", number=5, search="grid")
+tune_grid <- expand.grid(mtry = seq(2, sqrt(ncol(training_set)-1), by = 1))
+
+# Tuning of the model
+set.seed(123)
+rf_tune_result <- train(species ~ ., data=training_set, method="rf", trControl=train_control, tuneGrid=tune_grid, ntree=500)
+print(rf_tune_result$bestTune)
+
+# Tuned random forest model
+best_mtry <- rf_tune_result$bestTune$mtry
+set.seed(123)
+tuned_rf <- randomForest(species ~ ., data=training_set, mtry=best_mtry, ntree=500)
+
+# Prediction and evaluation
+rf_predictions <- predict(tuned_rf, newdata=testing_set)
+confusion_matrix_rf <- confusionMatrix(rf_predictions, testing_set$species)
+print(confusion_matrix_rf)
+
+# Misclassification rate
+misclassification_rate_rf <- 1 - sum(diag(confusion_matrix_rf$table)) / sum(confusion_matrix_rf$table)
+cat("Misclassification Rate:", misclassification_rate_rf, "\n")
+
+# Adjusted Rand Index (ARI)
+ARI_rf <- adjustedRandIndex(rf_predictions, testing_set$species)
+cat("Adjusted Rand Index (ARI):", ARI_rf, "\n")
+
+
+
